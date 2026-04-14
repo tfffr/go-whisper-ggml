@@ -31,19 +31,17 @@ The model will be placed here:
 ./models/ggml-small.bin
 ```
 
-## 3. Point Go/cgo to the built library
+## 3. Edit Makefile
+Replace `WHISPER_DIR` in Makefile with your actual path to `whisper.cpp`
+
+## 4. Run the Go project through Makefile
 
 ```bash
-export WHISPER_DIR="/absolute/path/to/whisper.cpp"
-export CGO_CFLAGS="-I${WHISPER_DIR}/include -I${WHISPER_DIR}/ggml/include"
-export CGO_LDFLAGS="-L${WHISPER_DIR}/build/src -L${WHISPER_DIR}/build/ggml/src -lwhisper -lggml -lstdc++ -lm"
+make run
 ```
-
-## 4. Run the Go project
-
+or to build:
 ```bash
-cd /your/go/project
-go run .
+make build
 ```
 
 ## Notes
