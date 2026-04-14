@@ -34,17 +34,7 @@ The model will be placed here:
 ## 3. Edit Makefile
 Replace `WHISPER_DIR` in Makefile with your actual path to `whisper.cpp`
 
-## 4. Run the Go project through Makefile
-
-```bash
-make run
-```
-or to build:
-```bash
-make build
-```
-
-## Notes
+## 4. Edit path to `ggml-small.bin` model
 
 ### If you use the default model path in code
 
@@ -61,4 +51,14 @@ then either:
 
 ```go
 const ModelPath = "/absolute/path/to/whisper.cpp/models/ggml-small.bin"
+```
+
+## 5. Run the Go project through Makefile
+
+```bash
+make run
+```
+or to build:
+```bash
+make build
 ```
