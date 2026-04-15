@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/ggerganov/whisper.cpp/bindings/go/pkg/whisper"
@@ -63,7 +64,13 @@ func (t *Transcriber) TranscribeFromFile(filePath string) (string, error) {
 }
 
 func (t *Transcriber) TranscribeFromBytes(audioBytes []byte) (string, error) {
-	audioData, err := parseWavData(audioBytes)
+	cleanAudioBytes, err := denoiseAndSpedUp(audioBytes)
+	if err != nil {
+		fmt.Printf("WARNING: denoise and spedup failed, using original audio: %v\n", err)
+		cleanAudioBytes = audioBytes
+	}
+
+	audioData, err := parseWavData(cleanAudioBytes)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse wav: %w", err)
 	}
@@ -204,4 +211,26 @@ func float32Buffer(data []int, bitDepth int) []float32 {
 	}
 
 	return res
+}
+
+// removes noise and speds up
+func denoiseAndSpedUp(audioBytes []byte) ([]byte, error) {
+	cmd := exec.Command("ffmpeg",
+		"-i", "pipe:0",
+		"-af", "highpass=f=200,lowpass=f=3000,afftdn=nf=-25,atempo=1.25",
+		"-f", "wav",
+		"pipe:1",
+	)
+	cmd.Stdin = bytes.NewReader(audioBytes)
+
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("ffmpeg processing failed: %v; stderr: %s", err, stderr.String())
+	}
+
+	return out.Bytes(), nil
 }
