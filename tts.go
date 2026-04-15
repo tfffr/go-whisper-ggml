@@ -75,6 +75,10 @@ func (t *Transcriber) TranscribeFromBytes(audioBytes []byte) (string, error) {
 		return "", fmt.Errorf("failed to parse wav: %w", err)
 	}
 
+	if len(audioData) == 0 {
+		return "", fmt.Errorf("parsed audio data is empty (likely invalid/empty source audio)")
+	}
+
 	if len(audioData) > TargetSampleRate*2 {
 		audioData = audioData[TargetSampleRate : len(audioData)-TargetSampleRate]
 	}
