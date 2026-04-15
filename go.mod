@@ -1,4 +1,4 @@
-module tts
+module github.com/tfffr/go-whisper-ggml
 
 go 1.26.1
 

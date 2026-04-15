@@ -17,16 +17,22 @@ const (
 )
 
 type Transcriber struct {
-	model whisper.Model
+	model     whisper.Model
+	Language  string
+	Translate bool
 }
 
-func NewTranscriber(modelPath string) (*Transcriber, error) {
+func NewTranscriber(modelPath string, lang string, translate bool) (*Transcriber, error) {
 	model, err := whisper.New(modelPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load model: %w", err)
 	}
 
-	return &Transcriber{model: model}, nil
+	return &Transcriber{
+		model:     model,
+		Language:  lang,
+		Translate: translate,
+	}, nil
 }
 
 func (t *Transcriber) Close() error {
@@ -79,8 +85,8 @@ func (t *Transcriber) transcribe(audioData []float32) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	context.SetLanguage("ru")
-	context.SetTranslate(false)
+	context.SetLanguage(t.Language)
+	context.SetTranslate(t.Translate)
 
 	if err := context.Process(audioData, nil, nil, nil); err != nil {
 		return "", err
