@@ -64,15 +64,13 @@ func (t *Transcriber) TranscribeFromFile(filePath string) (string, error) {
 }
 
 func (t *Transcriber) TranscribeFromBytes(audioBytes []byte) (string, error) {
-	cleanAudioBytes, err := denoiseAndSpedUp(audioBytes)
+	audioData, err := denoiseAndSpedUp(audioBytes)
 	if err != nil {
 		fmt.Printf("WARNING: denoise and spedup failed, using original audio: %v\n", err)
-		cleanAudioBytes = audioBytes
-	}
-
-	audioData, err := parseWavData(cleanAudioBytes)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse wav: %w", err)
+		audioData, err = parseWavData(audioBytes)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse wav: %w", err)
+		}
 	}
 
 	if len(audioData) == 0 {
@@ -218,11 +216,13 @@ func float32Buffer(data []int, bitDepth int) []float32 {
 }
 
 // removes noise and speds up
-func denoiseAndSpedUp(audioBytes []byte) ([]byte, error) {
+func denoiseAndSpedUp(audioBytes []byte) ([]float32, error) {
 	cmd := exec.Command("ffmpeg",
 		"-i", "pipe:0",
 		"-af", "highpass=f=200,lowpass=f=3000,afftdn=nf=-25,atempo=1.25",
-		"-f", "wav",
+		"-ar", "16000",
+		"-ac", "1",
+		"-f", "s16le",
 		"pipe:1",
 	)
 	cmd.Stdin = bytes.NewReader(audioBytes)
@@ -236,5 +236,17 @@ func denoiseAndSpedUp(audioBytes []byte) ([]byte, error) {
 		return nil, fmt.Errorf("ffmpeg processing failed: %v; stderr: %s", err, stderr.String())
 	}
 
-	return out.Bytes(), nil
+	rawBytes := out.Bytes()
+	if len(rawBytes) == 0 {
+		return nil, fmt.Errorf("ffmpeg returned empty data")
+	}
+
+	samplesLen := len(rawBytes) / 2
+	audioData := make([]float32, samplesLen)
+	for i := 0; i < samplesLen; i++ {
+		sample := int16(rawBytes[i*2]) | int16(rawBytes[i*2+1])<<8
+		audioData[i] = float32(sample) / 32768.
+	}
+
+	return audioData, nil
 }
